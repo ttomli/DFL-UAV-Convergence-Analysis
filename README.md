@@ -139,7 +139,7 @@ The video network_simulation.mp4 will be located in the network_visualizations d
 
 Project Structure
 
-your_repository_name/
+DFL-UAV-Convergence-Analysis/
 ├── src/
 │   ├── data_loader.py
 │   ├── main.py
