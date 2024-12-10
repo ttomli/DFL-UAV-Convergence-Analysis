@@ -4,10 +4,17 @@ import numpy as np
 from model import SimpleCNN
 from network import UAVNetwork
 from data_loader import get_test_data
-from utils import evaluate_model, aggregate_models, plot_metrics, plot_comparison_metrics
+from utils import evaluate_model, aggregate_models, plot_metrics, plot_comparison_metrics, plot_comparison_metrics_all
 from convergence import has_converged
 
 def simulate_centralized_fl(num_rounds=10):
+    # Initialize lists to store metrics
+    val_loss_history = []
+    val_accuracy_history = []
+    test_loss_history = []
+    test_accuracy_history = []
+    latency_history = []
+
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     network = UAVNetwork(num_uavs=6)
     server = network.uavs[0]  # Designate UAV 0 as the server
@@ -19,12 +26,14 @@ def simulate_centralized_fl(num_rounds=10):
     test_accuracy_history = []
 
     for round_num in range(num_rounds):
+        total_latency = 0.0 # Track total latency for this round
         # Clients perform local training
         sample_counts = []
         for uav in clients:
             uav.local_training(device=device)
             # Collect the number of training samples
             sample_counts.append(uav.get_sample_count())
+            total_latency += uav.total_latency
 
         # Clients send model updates to the server
         aggregated_state_dict = aggregate_models(
@@ -38,15 +47,33 @@ def simulate_centralized_fl(num_rounds=10):
         # Server sends the updated model back to clients
         for uav in clients:
             uav.model.load_state_dict(server.model.state_dict())
+            uav.total_latency = 0.0  # Reset latency for next round
+
+        # Evaluate on validation sets of clients
+        val_losses = []
+        val_accuracies = []
+        for uav in clients:
+            uav.validate(device=device)
+            if uav.validation_loss is not None:
+                val_losses.append(uav.validation_loss)
+            if uav.validation_accuracy is not None:
+                val_accuracies.append(uav.validation_accuracy)
+
+        avg_val_loss = np.mean(val_losses)
+        avg_val_accuracy = np.mean(val_accuracies)
+        avg_latency = total_latency / len(clients)
 
         # Evaluate the global model on the test dataset
         test_loss, test_accuracy = evaluate_model(server.model, test_loader, device)
         print(f"Round {round_num + 1}: Test Loss: {test_loss:.4f}, Test Accuracy: {test_accuracy:.2f}%")
 
         # Store metrics
+        val_loss_history.append(avg_val_loss)
+        val_accuracy_history.append(avg_val_accuracy)
+        latency_history.append(avg_latency)
         test_loss_history.append(test_loss)
         test_accuracy_history.append(test_accuracy)
-    return test_loss_history, test_accuracy_history
+    return val_loss_history, val_accuracy_history, test_loss_history, test_accuracy_history, latency_history
 
 def simulate_decentralized_fl(num_rounds=10):
     # Initialize lists to store metrics
@@ -109,13 +136,15 @@ def simulate_decentralized_fl(num_rounds=10):
 if __name__ == "__main__":
     num_rounds = 10
     print("Simulating Centralized Federated Learning...")
-    centralized_test_loss_history, centralized_test_accuracy_history = simulate_centralized_fl(num_rounds)
+    centralized_val_loss_history, centralized_val_accuracy_history, centralized_test_loss_history, centralized_test_accuracy_history, centralized_latency_history = simulate_centralized_fl(num_rounds)
 
     print("\nSimulating Decentralized Federated Learning...")
-    decentralized_val_loss_history, decentralized_val_accuracy_history, decentralized_test_loss_history, decentralized_test_accuracy_history, latency_history = simulate_decentralized_fl(num_rounds)
+    decentralized_val_loss_history, decentralized_val_accuracy_history, decentralized_test_loss_history, decentralized_test_accuracy_history, decentralized_latency_history = simulate_decentralized_fl(num_rounds)
 
-    # Compare and plot metrics
-    plot_comparison_metrics(
-        centralized_test_loss_history, centralized_test_accuracy_history,
-        decentralized_test_loss_history, decentralized_test_accuracy_history
+    # Compare and plot metrics side by side on the same graphs
+    plot_comparison_metrics_all(
+        centralized_val_loss_history, centralized_val_accuracy_history,
+        centralized_test_loss_history, centralized_test_accuracy_history, centralized_latency_history,
+        decentralized_val_loss_history, decentralized_val_accuracy_history,
+        decentralized_test_loss_history, decentralized_test_accuracy_history, decentralized_latency_history
     )

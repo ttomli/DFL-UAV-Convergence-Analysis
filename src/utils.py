@@ -147,3 +147,69 @@ def plot_comparison_metrics(centralized_test_loss, centralized_test_accuracy, de
     plt.legend()
     plt.savefig('plots/test_accuracy_comparison.png')
     plt.close()
+
+def plot_comparison_metrics_all(
+    centralized_val_loss, centralized_val_accuracy,
+    centralized_test_loss, centralized_test_accuracy, centralized_latency,
+    decentralized_val_loss, decentralized_val_accuracy,
+    decentralized_test_loss, decentralized_test_accuracy, decentralized_latency):
+
+    if not os.path.exists('plots'):
+        os.makedirs('plots')
+
+    rounds = range(1, len(centralized_test_loss) + 1)
+
+    # Validation Loss Comparison
+    plt.figure()
+    plt.plot(rounds, centralized_val_loss, label='Centralized FL', marker='o')
+    plt.plot(rounds, decentralized_val_loss, label='Decentralized FL', marker='s')
+    plt.title('Validation Loss Comparison')
+    plt.xlabel('Round')
+    plt.ylabel('Loss')
+    plt.legend()
+    plt.savefig('plots/validation_loss_comparison.png')
+    plt.close()
+
+    # Validation Accuracy Comparison
+    plt.figure()
+    plt.plot(rounds, centralized_val_accuracy, label='Centralized FL', marker='o')
+    plt.plot(rounds, decentralized_val_accuracy, label='Decentralized FL', marker='s')
+    plt.title('Validation Accuracy Comparison')
+    plt.xlabel('Round')
+    plt.ylabel('Accuracy (%)')
+    plt.legend()
+    plt.savefig('plots/validation_accuracy_comparison.png')
+    plt.close()
+
+    # Test Loss Comparison
+    plt.figure()
+    plt.plot(rounds, centralized_test_loss, label='Centralized FL', marker='o')
+    plt.plot(rounds, decentralized_test_loss, label='Decentralized FL', marker='s')
+    plt.title('Test Loss Comparison')
+    plt.xlabel('Round')
+    plt.ylabel('Loss')
+    plt.legend()
+    plt.savefig('plots/test_loss_comparison.png')
+    plt.close()
+
+    # Test Accuracy Comparison
+    plt.figure()
+    plt.plot(rounds, centralized_test_accuracy, label='Centralized FL', marker='o')
+    plt.plot(rounds, decentralized_test_accuracy, label='Decentralized FL', marker='s')
+    plt.title('Test Accuracy Comparison')
+    plt.xlabel('Round')
+    plt.ylabel('Accuracy (%)')
+    plt.legend()
+    plt.savefig('plots/test_accuracy_comparison.png')
+    plt.close()
+
+    # Latency Comparison
+    plt.figure()
+    plt.plot(rounds, centralized_latency, label='Centralized FL', marker='o')
+    plt.plot(rounds, decentralized_latency, label='Decentralized FL', marker='s')
+    plt.title('Average Latency per Round Comparison')
+    plt.xlabel('Round')
+    plt.ylabel('Latency (s)')
+    plt.legend()
+    plt.savefig('plots/latency_comparison.png')
+    plt.close()
